@@ -1,5 +1,6 @@
 package com.syarul.rnlocation;
 
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationListener;
@@ -39,6 +40,7 @@ public class RNLocationModule extends ReactContextBaseJavaModule{
 
         locationManager = (LocationManager) mReactContext.getSystemService(Context.LOCATION_SERVICE);
         mLastLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
         }
 
 
@@ -58,6 +60,12 @@ public class RNLocationModule extends ReactContextBaseJavaModule{
          */
         @ReactMethod
         public void startUpdatingLocation() {
+
+            String permission = "android.permission.ACCESS_FINE_LOCATION";
+            // return -1 for denied and 1
+            int res = getReactApplicationContext().checkCallingOrSelfPermission(permission);
+            //if (res != PackageManager.PERMISSION_GRANTED) ? "authorized" : "denied";
+
           mLocationListener = new LocationListener(){
             @Override
             public void onStatusChanged(String str,int in,Bundle bd){
@@ -71,6 +79,8 @@ public class RNLocationModule extends ReactContextBaseJavaModule{
             public void onProviderDisabled(String str){
             }
 
+
+
             @Override
             public void onLocationChanged(Location loc){
                 mLastLocation = loc;
@@ -79,28 +89,21 @@ public class RNLocationModule extends ReactContextBaseJavaModule{
                     double longitude;
                     double latitude;
                     double speed;
-                    double altitude;
-                    double accuracy;
-                    double course;
-
+                      double heading;
                     // Receive Longitude / Latitude from (updated) Last Location
                     longitude = mLastLocation.getLongitude();
                     latitude = mLastLocation.getLatitude();
                     speed = mLastLocation.getSpeed();
-                    altitude = mLastLocation.getAltitude();
-                    accuracy = mLastLocation.getAccuracy();
-                    course = mLastLocation.getBearing();
+                    heading = mLastLocation.getBearing();
 
-                    Log.i(TAG, "Got new location. Lng: " +longitude+" Lat: "+latitude);
-
+                    Log.i(TAG, "Got new location. Lng: " +longitude+" Lat: "+latitude +" Angle: " + mLastLocation.getBearing());
+                 
                    // Create Map with Parameters to send to JS
                     WritableMap params = Arguments.createMap();
                     params.putDouble("longitude", longitude);
                     params.putDouble("latitude", latitude);
                     params.putDouble("speed", speed);
-                    params.putDouble("altitude", altitude);
-                    params.putDouble("accuracy", accuracy);
-                    params.putDouble("course", course);
+                    params.putDouble("heading", heading);
 
                     // Send Event to JS to update Location
                     sendEvent(mReactContext, "locationUpdated", params);
@@ -112,18 +115,8 @@ public class RNLocationModule extends ReactContextBaseJavaModule{
 
 
         }};
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 1, mLocationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, mLocationListener);
 
-        }
-
-        @ReactMethod
-        public void stopUpdatingLocation() {
-            try {
-                locationManager.removeUpdates(mLocationListener);
-                Log.i(TAG, "Location service disabled.");
-            }catch(Exception e) {
-                e.printStackTrace();
-            }
         }
 
         /*
